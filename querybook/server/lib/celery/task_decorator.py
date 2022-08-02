@@ -5,7 +5,7 @@ from clients.redis_client import semi_incr, semi_decr, with_redis
 from lib.utils.cache import make_template_fragment_key
 
 
-def debounced_task(countdown=10, cache_key=None, **options):  # Delay in seconds
+def debounced_task(countdown=10, cache_key=None, **options):    # Delay in seconds
     """Execute the task only after no call with the cache key during countdown
        Debounced task can only return void
     Keyword Arguments:
@@ -42,8 +42,9 @@ def debounced_task(countdown=10, cache_key=None, **options):  # Delay in seconds
         debounced_task.__raw__ = fn
 
         return celery._task_from_fun(
-            debounced_task, **options, name=_cache_key + "__debouncer"
+            debounced_task, **options, name=f"{_cache_key}__debouncer"
         )
+
 
     return wrapper
 
@@ -80,7 +81,8 @@ def throttled_task(throttle_for=10, cache_key=None, **options):
         throttled_task.__raw__ = fn
 
         return celery._task_from_fun(
-            throttled_task, **options, name=_cache_key + "__throttler"
+            throttled_task, **options, name=f"{_cache_key}__throttler"
         )
+
 
     return wrapper

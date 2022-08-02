@@ -44,7 +44,7 @@ def register(url, methods=None, require_auth=True, custom_response=False):
     """Register an endpoint to be a data source."""
 
     def wrapper(fn):
-        @flask_app.route(r"%s%s" % (DS_PATH, url), methods=methods)
+        @flask_app.route(f"{DS_PATH}{url}", methods=methods)
         @functools.wraps(fn)
         def handler(**kwargs):
             if require_auth and not current_user.is_authenticated:
@@ -90,10 +90,9 @@ def register(url, methods=None, require_auth=True, custom_response=False):
                     flask.g.database_session.rollback()
             if custom_response:
                 return results
-            else:
-                resp = flask.make_response(flask.jsonify(results), status)
-                resp.headers["Content-Type"] = "application/json"
-                return resp
+            resp = flask.make_response(flask.jsonify(results), status)
+            resp.headers["Content-Type"] = "application/json"
+            return resp
 
         handler.__raw__ = fn
         return handler

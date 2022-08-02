@@ -32,8 +32,9 @@ class SqlAlchemyQueryExecutor(QueryExecutorBaseClass):
                     match = re.search(r"at line (\d+)", message)
                     return get_parsed_syntax_error(
                         str(e.orig.args),
-                        int(match.group(1)) - 1 if match is not None else None,
+                        int(match[1]) - 1 if match is not None else None,
                     )
+
         return error_type, error_str, error_extracted
 
 
@@ -54,9 +55,7 @@ class SnowflakeQueryExecutor(SqlAlchemyQueryExecutor):
                 message = orig_error.msg
                 match = re.search(r"error line (\d+) at position (\d+)", message)
                 if match is not None:
-                    return get_parsed_syntax_error(
-                        message, int(match.group(1)) - 1, int(match.group(2))
-                    )
+                    return get_parsed_syntax_error(message, int(match[1]) - 1, int(match[2]))
         return super(SnowflakeQueryExecutor, self)._parse_exception(e)
 
 

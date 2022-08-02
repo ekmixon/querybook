@@ -53,12 +53,9 @@ class SerializeMixin:
         return result
 
     def __repr__(self):
-        _id = getattr(self, "id", "")
         name = getattr(self, "name", "")
-        if _id and name:
-            return '{}(id={}, name="{}")'.format(self.__class__.__name__, _id, name)
-        if _id:
-            return str(_id)
+        if _id := getattr(self, "id", ""):
+            return f'{self.__class__.__name__}(id={_id}, name="{name}")' if name else _id
         return name
 
 
@@ -66,7 +63,7 @@ class CRUDMixin(SerializeMixin):
     @classmethod
     def _get_query(cls, session=None, **kwargs):
         query = session.query(cls)
-        if len(kwargs) > 0:
+        if kwargs:
             query = query.filter_by(**kwargs)
         return query
 
@@ -126,14 +123,12 @@ class CRUDMixin(SerializeMixin):
         if not item:
             return
 
-        updated = update_model_fields(
+        if updated := update_model_fields(
             item,
             skip_if_value_none=skip_if_value_none,
             field_names=field_names,
             **fields,
-        )
-
-        if updated:
+        ):
             if hasattr(item, "updated_at"):
                 setattr(item, "updated_at", datetime.now())
 
@@ -161,12 +156,14 @@ class CRUDMixin(SerializeMixin):
 
 # from https://stackoverflow.com/questions/32364499/truncating-too-long-varchar-when-inserting-to-mysql-via-sqlalchemy
 def TruncateString(fields):
+
+
+
     class TruncateStringMixin:
         @validates(fields)
         def validate_string_field_length(self, key, value):
             max_len = getattr(self.__class__, key).prop.columns[0].type.length
-            if value and len(value) > max_len:
-                return value[:max_len]
-            return value
+            return value[:max_len] if value and len(value) > max_len else value
+
 
     return TruncateStringMixin

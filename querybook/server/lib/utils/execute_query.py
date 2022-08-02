@@ -48,11 +48,10 @@ class ExecuteQuery(object):
             return None  # Empty statement, return None
 
         cursor = executor._get_client(client_settings).cursor()
-        if self._async:
-            self._async_run(cursor, statements)
-            return None
-        else:
+        if not self._async:
             return self._sync_run(cursor, statements)
+        self._async_run(cursor, statements)
+        return None
 
     def _sync_run(self, cursor, statements):
         for statement in statements[:-1]:
@@ -113,7 +112,7 @@ class ExecuteQuery(object):
         if num_statements == 0:
             return 100
 
-        return sum([progress / num_statements for progress in self._progress])
+        return sum(progress / num_statements for progress in self._progress)
 
     @property
     def result(self):

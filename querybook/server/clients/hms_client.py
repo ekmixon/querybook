@@ -118,9 +118,9 @@ class HiveMetastoreClient:
                 SocketError,
             ) as ex:
                 _LOG.warning(
-                    "Failed to connect to hive metastore at %s"
-                    % function_for_node_info()
+                    f"Failed to connect to hive metastore at {function_for_node_info()}"
                 )
+
                 function_to_move_to_next_hostport()
                 if i == self._num_retries - 1:
                     _LOG.warning(
@@ -140,10 +140,9 @@ class HiveMetastoreClient:
                 # It did succeed in connecting, but got some other exception
                 if log_error:
                     _LOG.error(
-                        "Got an error when querying metastore at {}:".format(
-                            function_for_node_info()
-                        )
+                        f"Got an error when querying metastore at {function_for_node_info()}:"
                     )
+
                     _LOG.error(ex, exc_info=True)
                 raise ex
         return output

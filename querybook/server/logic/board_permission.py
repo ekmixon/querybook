@@ -16,11 +16,7 @@ def user_can_edit(board_id, uid, session=None):
     if board is None:
         raise BoardDoesNotExist()
 
-    if board.owner_uid == uid:
-        return True
-
-    # TODO: Update with edit permissions
-    return False
+    return board.owner_uid == uid
 
 
 @with_session
@@ -30,14 +26,7 @@ def user_can_read(board_id, uid, session=None):
     if board is None:
         raise BoardDoesNotExist()
 
-    if board.public:
-        return True
-
-    if board.owner_uid == uid:
-        return True
-
-    # TODO: Update with read permissions (not public but can read)
-    return False
+    return True if board.public else board.owner_uid == uid
 
 
 @with_session

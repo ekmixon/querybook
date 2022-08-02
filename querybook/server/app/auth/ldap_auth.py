@@ -21,7 +21,7 @@ def get_transformed_username(username):
         dn = username
 
         match = re.match(r"^uid=([^,]+)", username)
-        username = match.group(1)
+        username = match[1]
     else:
         dn = QuerybookSettings.LDAP_USER_DN.format(username)
     return username, dn
@@ -48,10 +48,9 @@ def authenticate(username, password, session=None):
 
 @with_session
 def login_user(username, session=None):
-    user = get_user_by_name(username, session=session)
-    if not user:
-        user = create_user(username=username, fullname=username, session=session)
-    return user
+    return get_user_by_name(username, session=session) or create_user(
+        username=username, fullname=username, session=session
+    )
 
 
 def login_user_endpoint(username, password):

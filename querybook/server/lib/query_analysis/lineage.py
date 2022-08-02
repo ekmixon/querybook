@@ -2,15 +2,21 @@ from typing import List
 import sqlparse
 
 
-ignore_types = set(["WHITESPACE", "NEWLINE", "ERROR", "SINGLE"])
+ignore_types = {"WHITESPACE", "NEWLINE", "ERROR", "SINGLE"}
 
-table_keywords = set(["TABLE", "FROM", "JOIN", "INTO"])
+table_keywords = {"TABLE", "FROM", "JOIN", "INTO"}
 
-initial_statement_keywords = set(["DESCRIBE", "DESC", "SHOW", "MSCK"])
+initial_statement_keywords = {"DESCRIBE", "DESC", "SHOW", "MSCK"}
 
-continue_table_search_key_word = set(
-    ["IF", "NOT", "EXISTS", "FORMATTED", "REPAIR", "PARTITIONS", "EXTENDED",]
-)
+continue_table_search_key_word = {
+    "IF",
+    "NOT",
+    "EXISTS",
+    "FORMATTED",
+    "REPAIR",
+    "PARTITIONS",
+    "EXTENDED",
+}
 
 
 def process_query(query, language=None):
@@ -21,11 +27,7 @@ def process_query(query, language=None):
         Lineage: [{table: [lineage]}],
         Statements: [{table: 'statement' }]
     """
-    if language == "sqlite":
-        default_schema = "main"
-    else:
-        default_schema = "default"
-
+    default_schema = "main" if language == "sqlite" else "default"
     lineage_per_statement = []
     table_per_statement = []
     # This tracks which schema (generic parent table specified in a USE statement) is in use
@@ -69,10 +71,10 @@ def get_table_statement_type(query: str) -> List[str]:
         if token is not None and hasattr(token, "ttype"):
             if token.value in ("SELECT", "INSERT"):
                 statement_type = token.value
-            elif (
-                token.ttype == sqlparse.tokens.Keyword.DML
-                or token.ttype == sqlparse.tokens.Keyword.DDL
-            ):
+            elif token.ttype in [
+                sqlparse.tokens.Keyword.DML,
+                sqlparse.tokens.Keyword.DDL,
+            ]:
                 # need to check if DML/DDL is related to a table
                 # for example DROP TABLE, CREATE TABLE etc
                 table_token = token
@@ -102,8 +104,11 @@ def get_statement_placeholders(statement):
         if isinstance(token, sqlparse.sql.Identifier):
             placeholders.append(token.get_real_name())
         elif token and isinstance(token, sqlparse.sql.IdentifierList):
-            for identifier in token.get_identifiers():
-                placeholders.append(identifier.get_real_name())
+            placeholders.extend(
+                identifier.get_real_name()
+                for identifier in token.get_identifiers()
+            )
+
         elif hasattr(token, "ttype") and token.ttype == sqlparse.tokens.Keyword.DML:
             break
         index, token = statement.token_next(index)
@@ -140,9 +145,7 @@ def get_statement_schema(statement, current_schema) -> str:
 
 
 def sanitize_table_name(name, default_schema):
-    if "." in name:
-        return name
-    return f"{default_schema}.{name}"
+    return name if "." in name else f"{default_schema}.{name}"
 
 
 def get_full_table_name(statement, index):
@@ -204,13 +207,12 @@ def get_table_list(statement, placeholders, default_schema):
 
 
 def compute_lineage(table_list, from_list):
-    if len(table_list) == 0 or len(table_list) == 0:
+    if len(table_list) == 0:
         return []
 
     lineage = []
     for source in from_list:
-        for target in table_list:
-            lineage.append({"source": source, "target": target})
+        lineage.extend({"source": source, "target": target} for target in table_list)
     return lineage
 
 

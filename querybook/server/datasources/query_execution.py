@@ -90,8 +90,7 @@ def create_query_execution(query, engine_id, data_cell_id=None, originator=None)
 def get_query_execution(query_execution_id):
     verify_query_execution_permission(query_execution_id)
     execution = logic.get_query_execution_by_id(query_execution_id)
-    execution_dict = execution.to_dict(True) if execution is not None else None
-    return execution_dict
+    return execution.to_dict(True) if execution is not None else None
 
 
 @register("/query_execution/<int:query_execution_id>/", methods=["DELETE"])
@@ -134,12 +133,10 @@ def search_query_execution(
             session=session,
         )
 
-        result = [
+        return [
             query_execution.to_dict(with_statement=False)
             for query_execution in query_executions
         ]
-
-        return result
 
 
 @register("/query_execution/<int:query_execution_id>/datadoc_cell_info/")
@@ -161,8 +158,9 @@ def get_datadoc_ids_by_query_execution(query_execution_id):
         cell_title = None
 
         if user_can_read(doc_id, current_user.id, session=session):
-            cell_info = datadoc_logic.get_data_cell_by_id(cell_id, session=session)
-            if cell_info:
+            if cell_info := datadoc_logic.get_data_cell_by_id(
+                cell_id, session=session
+            ):
                 cell_title = cell_info.meta.get("title")
 
         return {"doc_id": doc_id, "cell_id": cell_id, "cell_title": cell_title}
@@ -237,8 +235,7 @@ def get_statement_execution_result(statement_execution_id):
             )
 
             with GenericReader(statement_execution.result_path) as reader:
-                result = reader.read_csv(number_of_lines=2001)
-                return result
+                return reader.read_csv(number_of_lines=2001)
         except FileDoesNotExist as e:
             abort(RESOURCE_NOT_FOUND_STATUS_CODE, str(e))
 
@@ -267,13 +264,13 @@ def get_statement_execution_log(statement_execution_id):
                 return list(map(lambda log: log.log, logs))
             else:
                 with DBSession() as session:
-                    MAX_LOG_RETURN_LINES = 2000
                     result = ""
 
                     statement_execution = logic.get_statement_execution_by_id(
                         statement_execution_id, session=session
                     )
                     if statement_execution is not None and statement_execution.has_log:
+                        MAX_LOG_RETURN_LINES = 2000
                         with GenericReader(statement_execution.log_path) as reader:
                             result = reader.read_lines(
                                 number_of_lines=MAX_LOG_RETURN_LINES
@@ -337,9 +334,11 @@ def get_all_query_result_exporters():
 def export_statement_execution_acquire_auth(exporter_name):
     exporter = get_exporter(exporter_name)
     api_assert(exporter is not None, f"Invalid exporter name {exporter_name}")
-    if not exporter.requires_auth:
-        return None
-    return exporter.acquire_auth(current_user.id)
+    return (
+        exporter.acquire_auth(current_user.id)
+        if exporter.requires_auth
+        else None
+    )
 
 
 @register(
@@ -366,7 +365,7 @@ def export_statement_execution_result(
 
     if exporter_params:
         valid, reason = validate_form(exporter.export_form, exporter_params)
-        api_assert(valid, "Invalid exporter params, reason: " + reason)
+        api_assert(valid, f"Invalid exporter params, reason: {reason}")
 
     return exporter.export(
         statement_execution_id, current_user.id, **(exporter_params or {})
@@ -399,10 +398,9 @@ def add_query_execution_viewer(execution_id, uid):
             commit=False,
             session=session,
         )
-        access_request = AccessRequest.get(
+        if access_request := AccessRequest.get(
             session=session, query_execution_id=execution_id, uid=uid
-        )
-        if access_request:
+        ):
             AccessRequest.delete(id=access_request.id, session=session, commit=False)
         send_query_execution_invitation_notification(
             execution_id=execution_id, uid=uid, session=session
@@ -443,8 +441,9 @@ def add_query_execution_access_request(execution_id):
 @register("/query_execution/<int:execution_id>/access_request/", methods=["DELETE"])
 def delete_query_execution_access_request(execution_id, uid):
     verify_query_execution_owner(execution_id)
-    access_request = AccessRequest.get(query_execution_id=execution_id, uid=uid)
-    if access_request:
+    if access_request := AccessRequest.get(
+        query_execution_id=execution_id, uid=uid
+    ):
         AccessRequest.delete(id=access_request.id)
 
 

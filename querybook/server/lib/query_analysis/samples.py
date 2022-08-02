@@ -35,15 +35,13 @@ def make_samples_query(
 
     if partition is None:
         partition = next(iter(reversed(partitions)), None)
-    else:
-        # Check the validity of partition provided
-        if not (len(partitions) and partition in partitions):
-            raise SamplesError("Invalid partition " + partition)
+    elif not len(partitions) or partition not in partitions:
+        raise SamplesError(f"Invalid partition {partition}")
 
     if partition:  # latest_partitions is like dt=2015-01-01/column1=val1
         for column_filter in partition.split("/"):
             column_name, column_val = column_filter.split("=")
-            column_type = column_type_by_name.get(column_name, None)
+            column_type = column_type_by_name.get(column_name)
             column_quote = ""
             if column_type == QuerybookColumnType.String:
                 column_quote = "'"
@@ -55,40 +53,39 @@ def make_samples_query(
     if where is not None:
         column_name, filter_op, filter_val = where
         if column_name not in column_type_by_name:
-            raise SamplesError("Invalid filter column " + column_name)
+            raise SamplesError(f"Invalid filter column {column_name}")
         column_type = column_type_by_name[column_name]
 
         if filter_op not in COMPARSION_OP:
-            raise SamplesError("Invalid filter op " + filter_op)
+            raise SamplesError(f"Invalid filter op {filter_op}")
 
         if filter_op in ["=", "!=", "LIKE"]:
             if column_type == QuerybookColumnType.Number:
                 if not filter_val or not filter_val.isnumeric():
-                    raise SamplesError("Invalid numeric filter value " + filter_val)
+                    raise SamplesError(f"Invalid numeric filter value {filter_val}")
             elif column_type == QuerybookColumnType.Boolean:
-                if filter_val != "true" and filter_val != "false":
-                    raise SamplesError("Invalid boolean filter value " + filter_val)
+                if filter_val not in ["true", "false"]:
+                    raise SamplesError(f"Invalid boolean filter value {filter_val}")
             else:  # column_type == QuerybookColumnType.String
-                filter_val = "'{}'".format(json.dumps(filter_val)[1:-1])
+                filter_val = f"'{json.dumps(filter_val)[1:-1]}'"
         else:
             filter_val = ""
 
         query_filters.append(f"{column_name} {filter_op} {filter_val}")
 
     query_filter_str = (
-        "WHERE\n{}".format(" AND ".join(query_filters)) if len(query_filters) else ""
+        f'WHERE\n{" AND ".join(query_filters)}' if len(query_filters) else ""
     )
+
 
     order_by_str = ""
     if order_by is not None:
         if order_by not in column_type_by_name:
-            raise SamplesError("Invalid order by " + order_by)
-        order_by_str = "ORDER BY {} {}".format(
-            order_by, "ASC" if order_by_asc else "DESC"
-        )
+            raise SamplesError(f"Invalid order by {order_by}")
+        order_by_str = f'ORDER BY {order_by} {"ASC" if order_by_asc else "DESC"}'
 
-    full_name = "%s.%s" % (table.data_schema.name, table.name)
-    query = """
+    full_name = f"{table.data_schema.name}.{table.name}"
+    return """
 SELECT
     *
 FROM {}
@@ -97,8 +94,6 @@ FROM {}
 LIMIT {}""".format(
         full_name, query_filter_str, order_by_str, limit
     )
-
-    return query
 
 
 COMPARSION_OP = ["=", "!=", "LIKE", "IS NULL", "IS NOT NULL"]
@@ -168,11 +163,10 @@ def get_column_type_from_string(raw_column: str) -> QuerybookColumnType:
 
     # Extract the start of the raw_column
     match = re.match(r"^([a-zA-Z]+)", raw_column)
-    first_word = match.group(1).lower() if match is not None else ""
+    first_word = match[1].lower() if match is not None else ""
 
-    column_type = (
+    return (
         common_sql_types[first_word]
         if first_word in common_sql_types
         else QuerybookColumnType.Unknown
     )
-    return column_type

@@ -20,10 +20,7 @@ def user_can_write(doc_id, uid, session=None):
     if doc is None:
         raise DocDoesNotExist()
 
-    if doc.owner_uid == uid:
-        return True
-
-    return editor is not None and editor.write
+    return True if doc.owner_uid == uid else editor is not None and editor.write
 
 
 @with_session

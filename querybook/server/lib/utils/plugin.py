@@ -34,7 +34,7 @@ def import_plugin(
             plugin_value = default_val
 
         return plugin_value
-    except (ImportError, ModuleNotFoundError) as err:
+    except ImportError as err:
         # Silence this err
         LOG.error(f"Cannot import {plugin_path}.{plugin_variable} due to: {str(err)}")
         if default_val is None:

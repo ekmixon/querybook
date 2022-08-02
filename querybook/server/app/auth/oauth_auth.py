@@ -41,9 +41,7 @@ class OAuthLoginManager(object):
     @property
     def oauth_config(self):
         return {
-            "callback_url": "{}{}".format(
-                QuerybookSettings.PUBLIC_URL, OAUTH_CALLBACK_PATH
-            ),
+            "callback_url": f"{QuerybookSettings.PUBLIC_URL}{OAUTH_CALLBACK_PATH}",
             "client_id": QuerybookSettings.OAUTH_CLIENT_ID,
             "client_secret": QuerybookSettings.OAUTH_CLIENT_SECRET,
             "authorization_url": QuerybookSettings.OAUTH_AUTHORIZATION_URL,
@@ -125,12 +123,9 @@ class OAuthLoginManager(object):
 
     @with_session
     def login_user(self, username, email, session=None):
-        user = get_user_by_name(username, session=session)
-        if not user:
-            user = create_user(
-                username=username, fullname=username, email=email, session=session
-            )
-        return user
+        return get_user_by_name(username, session=session) or create_user(
+            username=username, fullname=username, email=email, session=session
+        )
 
 
 login_manager = OAuthLoginManager()

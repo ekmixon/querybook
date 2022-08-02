@@ -45,9 +45,7 @@ def run_query_task(self, query_execution_id):
     except QueryExecutorException as e:
         error_message = format_error_message(7403, str(e))
     except Exception as e:
-        error_message = format_error_message(
-            7406, "{}\n{}".format(e, traceback.format_exc())
-        )
+        error_message = format_error_message(7406, f"{e}\n{traceback.format_exc()}")
     finally:
         # When the finally block is reached, it is expected
         # that the executor should be in one of the end state

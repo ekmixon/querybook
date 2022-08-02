@@ -66,8 +66,8 @@ def _detect_cycle(dag: _DAG) -> bool:
 
 def get_default_variables():
     return {
-        "today": datetime.today().strftime("%Y-%m-%d"),
-        "yesterday": (datetime.today() - timedelta(1)).strftime("%Y-%m-%d"),
+        "today": datetime.now().strftime("%Y-%m-%d"),
+        "yesterday": (datetime.now() - timedelta(1)).strftime("%Y-%m-%d"),
     }
 
 
@@ -100,7 +100,7 @@ def create_get_latest_partition(engine_id: int) -> Callable[[str, str], str]:
             str - value of latest partition
         """
         full_table_name_parts = full_table_name.split(".")
-        if not len(full_table_name_parts) == 2:
+        if len(full_table_name_parts) != 2:
             raise LatestPartitionException(
                 f"Full table name '{full_table_name}' is invalid. Must be in the format <schema_name>.<table_name>"
             )
@@ -139,22 +139,15 @@ def get_templated_variables_in_string(s: str, jinja_env=None) -> Set[str]:
     ast = jinja_env.parse(s)
     variables = meta.find_undeclared_variables(ast)
 
-    # temporarily applying https://github.com/pallets/jinja/pull/994/files
-    # since the current version is binded by flask
-    filtered_variables = set()
-    for variable in variables:
-        if variable not in jinja_env.globals:
-            filtered_variables.add(variable)
-
-    return filtered_variables
+    return {
+        variable for variable in variables if variable not in jinja_env.globals
+    }
 
 
 def verify_all_variables_are_defined(variables_required, variables_provided):
     for variable_name in variables_required:
         if variable_name not in variables_provided:
-            raise UndefinedVariableException(
-                "Invalid variable name {}".format(variable_name)
-            )
+            raise UndefinedVariableException(f"Invalid variable name {variable_name}")
 
 
 def render_query_with_variables(s, variables, jinja_env):
@@ -217,9 +210,7 @@ def flatten_recursive_variables(
             for var_in_value in variables_in_value:
                 # Double check if the recursive referred variable is valid
                 if var_in_value not in raw_variables:
-                    raise UndefinedVariableException(
-                        "Invalid variable name: {}.".format(var_in_value)
-                    )
+                    raise UndefinedVariableException(f"Invalid variable name: {var_in_value}.")
             variables_dag[key] = variables_in_value
 
     if _detect_cycle(variables_dag):

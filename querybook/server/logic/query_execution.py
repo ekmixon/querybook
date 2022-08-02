@@ -366,9 +366,7 @@ def get_statement_execution_stream_logs(
     query = query.limit(limit).offset(offset)
     rows = query.all()
 
-    if from_end:
-        return rows[::-1]
-    return rows
+    return rows[::-1] if from_end else rows
 
 
 @with_session
@@ -432,10 +430,7 @@ def get_query_execution_error(query_execution_id, session=None):
 
 
 def is_task_active(task_id, active_celery_task_ids):
-    if not task_id:
-        return False
-
-    return task_id in active_celery_task_ids
+    return task_id in active_celery_task_ids if task_id else False
 
 
 @with_session
@@ -505,7 +500,7 @@ def clean_up_query_execution(dry_run=False, session=None):
                 commit=False,
                 session=session,
             )
-            LOG.info("Updating query: {}".format(query_execution.id))
+            LOG.info(f"Updating query: {query_execution.id}")
 
             statement_executions = query_execution.statement_executions
             for statement_execution in statement_executions:
@@ -514,7 +509,7 @@ def clean_up_query_execution(dry_run=False, session=None):
                     < StatementExecutionStatus.DONE.value
                 ):
                     statement_execution.status = StatementExecutionStatus.ERROR
-                    LOG.info("Updating statement: {}".format(statement_execution.id))
+                    LOG.info(f"Updating statement: {statement_execution.id}")
     if should_commit and not dry_run:
         session.commit()
 

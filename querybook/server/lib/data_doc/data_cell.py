@@ -49,7 +49,7 @@ def _validate_series(valid_val, input_val):
     valid_series_keys = valid_val[0].keys()
     # Do a shallow key validation
     return all(
-        all([item_key in valid_series_keys for item_key in series_item])
+        all(item_key in valid_series_keys for item_key in series_item)
         for series_item in input_val.values()
     )
 
@@ -86,7 +86,4 @@ def check_type_match(actual_val, expected_val) -> bool:
 
     # Make an exception here since int can be represented as float
     # But not vice versa (for example, index)
-    if type(expected_val) == float and type(actual_val) == int:
-        return True
-
-    return False
+    return type(expected_val) == float and type(actual_val) == int

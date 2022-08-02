@@ -182,11 +182,9 @@ def get_data_cell_executions(id):
     with DBSession() as session:
         verify_data_cell_permission(id, session=session)
         executions = logic.get_data_cell_executions(id, session=session)
-        executions_dict = [
+        return [
             execution.to_dict(with_statement=False) for execution in executions
         ]
-
-        return executions_dict
 
 
 @register("/batch/data_cell/query_execution/", methods=["POST"])
@@ -330,10 +328,9 @@ def delete_datadoc_schedule(id):
         assert_can_write(id, session=session)
         verify_data_doc_permission(id, session=session)
 
-        schedule = schedule_logic.get_task_schedule_by_name(
+        if schedule := schedule_logic.get_task_schedule_by_name(
             schedule_name, session=session
-        )
-        if schedule:
+        ):
             schedule_logic.delete_task_schedule(schedule.id, session=session)
 
 
@@ -511,12 +508,12 @@ def update_datadoc_editor(
     originator=None,  # Used for websocket to identify sender, optional
 ):
     with DBSession() as session:
-        editor = logic.get_data_doc_editor_by_id(id, session=session)
-        if editor:
+        if editor := logic.get_data_doc_editor_by_id(id, session=session):
             assert_can_write(editor.data_doc_id, session=session)
 
-        editor = logic.update_data_doc_editor(id, read, write, session=session)
-        if editor:
+        if editor := logic.update_data_doc_editor(
+            id, read, write, session=session
+        ):
             editor_dict = editor.to_dict()
             socketio.emit(
                 "data_doc_editor",
@@ -538,8 +535,7 @@ def delete_datadoc_editor(
     id, originator=None,  # Used for websocket to identify sender, optional
 ):
     with DBSession() as session:
-        editor = logic.get_data_doc_editor_by_id(id, session=session)
-        if editor:
+        if editor := logic.get_data_doc_editor_by_id(id, session=session):
             editor_dict = editor.to_dict()
             assert_can_write(editor.data_doc_id, session=session)
             logic.delete_data_doc_editor(

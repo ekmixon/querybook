@@ -108,7 +108,7 @@ class DataJobMetadata(Base):
     )
 
     def to_dict(self):
-        complete_dict = {
+        return {
             "id": self.id,
             "job_name": self.job_name,
             "job_info": self.job_info,
@@ -117,7 +117,6 @@ class DataJobMetadata(Base):
             "is_adhoc": self.is_adhoc,
             "metastore_id": self.metastore_id,
         }
-        return complete_dict
 
 
 class DataSchema(Base):
@@ -227,7 +226,7 @@ class DataTable(Base, CRUDMixin):
         if self.ownership:
             table["ownership"] = self.ownership.to_dict()
         # update with data table information
-        table.update(self.information.to_dict())
+        table |= self.information.to_dict()
 
         if include_schema:
             table["schema"] = self.data_schema.to_dict()
@@ -256,13 +255,12 @@ class DataTableInformation(Base):
     hive_metastore_description = sql.Column(sql.Text(length=mediumtext_length))
 
     def to_dict(self):
-        table_information = {
+        return {
             "latest_partitions": self.latest_partitions,
             "earliest_partitions": self.earliest_partitions,
             "description": self.description,
             "hive_metastore_description": self.hive_metastore_description,
         }
-        return table_information
 
     def get_description(self):
         return self.description
@@ -316,13 +314,12 @@ class DataTableOwnership(Base):
     )
 
     def to_dict(self):
-        item = {
+        return {
             "id": self.id,
             "data_table_id": self.data_table_id,
             "created_at": self.created_at,
             "uid": self.uid,
         }
-        return item
 
 
 class DataTableQueryExecution(Base, CRUDMixin):

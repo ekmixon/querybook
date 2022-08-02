@@ -14,9 +14,7 @@ def split_hostport(hostport: str) -> Tuple[str, Optional[int]]:
 
 def merge_hostport(hostport: Tuple[str, Optional[int]]) -> str:
     host, port = hostport
-    if port is None:
-        return host
-    return f"{host}:{port}"
+    return host if port is None else f"{host}:{port}"
 
 
 def get_parsed_variables(
@@ -33,6 +31,4 @@ def get_parsed_variables(
 
 
 def random_choice(choices: Sequence, default=None):
-    if len(choices) == 0:
-        return default
-    return choice(choices)
+    return default if len(choices) == 0 else choice(choices)

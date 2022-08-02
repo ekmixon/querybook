@@ -29,9 +29,7 @@ def get_env_config(name, optional=True):
         found = False
     # We treat empty string as None as well
     if not found and not optional and not in_test:
-        raise MissingConfigException(
-            "{} is required to start the process.".format(name)
-        )
+        raise MissingConfigException(f"{name} is required to start the process.")
     return val
 
 

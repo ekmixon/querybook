@@ -39,16 +39,13 @@ def _extract_connection_url(connection_string: str) -> RawHiveConnectionConf:
         connection_string,
     )
 
-    hosts = match.group(1)
-    default_db = match.group(2) or "default"
-    session_variables = match.group(3) or ""
-    conf_list = match.group(4) or ""
-    var_list = match.group(5) or ""
+    hosts = match[1]
+    default_db = match[2] or "default"
+    session_variables = match[3] or ""
+    conf_list = match[4] or ""
+    var_list = match[5] or ""
 
-    parsed_hosts = []
-    for hostport in hosts.split(","):
-        parsed_hosts.append(split_hostport(hostport))
-
+    parsed_hosts = [split_hostport(hostport) for hostport in hosts.split(",")]
     parsed_session_variables = get_parsed_variables(session_variables[1:])
     parsed_conf_list = get_parsed_variables(conf_list[1:])
     parsed_var_list = get_parsed_variables(var_list[1:])
@@ -80,21 +77,17 @@ def get_hive_host_port_from_zk(
         [_server_uri_to_dict(raw_server_uri) for raw_server_uri in raw_server_uris],
     )
     server_uris = list(map(lambda d: d["serverUri"], server_uri_dicts))
-    random_server_uri = random_choice(server_uris)
-
-    if not random_server_uri:
+    if random_server_uri := random_choice(server_uris):
+        return split_hostport(random_server_uri)
+    else:
         raise Exception("Failed to get hostname and port from Zookeeper")
-    return split_hostport(random_server_uri)
 
 
 def _server_uri_to_dict(server_uri: str) -> Optional[Dict[str, str]]:
-    match = re.search(r"serverUri=(.*);version=(.*);sequence=(.*)", server_uri)
-    if match:
-        return {
-            "serverUri": match.group(1),
-            "version": match.group(2),
-            "sequence": match.group(3),
-        }
+    if match := re.search(
+        r"serverUri=(.*);version=(.*);sequence=(.*)", server_uri
+    ):
+        return {"serverUri": match[1], "version": match[2], "sequence": match[3]}
 
 
 def get_hive_connection_conf(connection_string: str) -> HiveConnectionConf:

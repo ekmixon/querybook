@@ -40,9 +40,7 @@ def create_google_flow(google_client_config):
         _google_flow = Flow.from_client_config(
             google_client_config,
             scopes=SCOPES,
-            redirect_uri="{}{}".format(
-                QuerybookSettings.PUBLIC_URL, GSPREAD_OAUTH_CALLBACK
-            ),
+            redirect_uri=f"{QuerybookSettings.PUBLIC_URL}{GSPREAD_OAUTH_CALLBACK}",
         )
 
 
@@ -164,10 +162,10 @@ class GoogleSheetsExporter(BaseExporter):
             end_cell = coord_to_worksheet_coord(end_cell_coord[0], end_cell_coord[1])
 
             with gspread_worksheet(
-                sheet, worksheet_title, end_cell_coord[0], end_cell_coord[1]
-            ) as worksheet:
+                        sheet, worksheet_title, end_cell_coord[0], end_cell_coord[1]
+                    ) as worksheet:
 
-                worksheet.update("{}:{}".format(start_cell, end_cell), csv)
+                worksheet.update(f"{start_cell}:{end_cell}", csv)
 
     def get_credentials(self, uid):
         user = get_user_by_id(uid)
@@ -207,14 +205,16 @@ ordAMinusOne = ord("A") - 1
 
 def worksheet_coord_to_coord(worksheet_coord: str) -> Tuple[int, int]:
     match = re.match(r"^([A-Za-z]+)([1-9][0-9]*)$", worksheet_coord)
-    col = match.group(1).upper()
-    row = match.group(2)
+    col = match[1].upper()
+    row = match[2]
 
     num_row = int(row)
 
-    num_col = 0
-    for i, ch in enumerate(reversed(col)):
-        num_col += (ord(ch) - ordAMinusOne) * (26 ** i)
+    num_col = sum(
+        (ord(ch) - ordAMinusOne) * (26**i)
+        for i, ch in enumerate(reversed(col))
+    )
+
     return num_col, num_row
 
 

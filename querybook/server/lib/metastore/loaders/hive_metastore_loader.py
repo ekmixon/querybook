@@ -87,8 +87,7 @@ class HMSMetastoreLoader(BaseMetastoreLoader):
 
 def get_hive_metastore_table_description(hmc, db_name, table_name):
     try:
-        description = hmc.get_table(db_name, table_name)
-        return description
+        return hmc.get_table(db_name, table_name)
     except NoSuchObjectException:
         return None
 

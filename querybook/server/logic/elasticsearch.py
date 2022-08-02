@@ -73,12 +73,10 @@ def get_datadocs_iter(batch_size=5000, session=None):
 
     while True:
         data_docs = get_all_data_docs(limit=batch_size, offset=offset, session=session,)
-        LOG.info("\n--Datadocs count: {}, offset: {}".format(len(data_docs), offset))
+        LOG.info(f"\n--Datadocs count: {len(data_docs)}, offset: {offset}")
 
         for data_doc in data_docs:
-            expand_datadoc = datadocs_to_es(data_doc, session=session)
-            yield expand_datadoc
-
+            yield datadocs_to_es(data_doc, session=session)
         if len(data_docs) < batch_size:
             break
         offset += batch_size
@@ -94,9 +92,7 @@ def datadocs_to_es(datadoc, session=None):
             cells_as_text.append(richtext_to_plaintext(cell.context))
         elif cell.cell_type == DataCellType.query:
             cell_title = cell.meta.get("title", "")
-            cell_text = (
-                cell.context if not cell_title else f"{cell_title}\n{cell.context}"
-            )
+            cell_text = f"{cell_title}\n{cell.context}" if cell_title else cell.context
             cells_as_text.append(cell_text)
         else:
             cells_as_text.append("[... additional unparsable content ...]")
@@ -106,16 +102,17 @@ def datadocs_to_es(datadoc, session=None):
     # There is no need to compute the list of editors
     # for public datadoc since everyone is able to see it
     editors = (
-        [
+        []
+        if datadoc.public
+        else [
             editor.uid
             for editor in get_data_doc_editors_by_doc_id(
                 data_doc_id=datadoc.id, session=session
             )
         ]
-        if not datadoc.public
-        else []
     )
-    expand_datadoc = {
+
+    return {
         "id": datadoc.id,
         "environment_id": datadoc.environment_id,
         "owner_uid": datadoc.owner_uid,
@@ -125,7 +122,6 @@ def datadocs_to_es(datadoc, session=None):
         "public": datadoc.public,
         "readable_user_ids": editors,
     }
-    return expand_datadoc
 
 
 @with_exception
@@ -148,7 +144,7 @@ def update_data_doc_by_id(doc_id, session=None):
         try:
             _delete(index_name, type_name, id=doc_id)
         except Exception:
-            LOG.error("failed to delete {}. Will pass.".format(doc_id))
+            LOG.error(f"failed to delete {doc_id}. Will pass.")
     else:
         formatted_object = datadocs_to_es(doc, session=session)
         try:
@@ -159,7 +155,7 @@ def update_data_doc_by_id(doc_id, session=None):
             }  # ES requires this format for updates
             _update(index_name, type_name, doc_id, updated_body)
         except Exception:
-            LOG.error("failed to upsert {}. Will pass.".format(doc_id))
+            LOG.error(f"failed to upsert {doc_id}. Will pass.")
 
 
 """
@@ -173,12 +169,10 @@ def get_tables_iter(batch_size=5000, session=None):
 
     while True:
         tables = get_all_table(limit=batch_size, offset=offset, session=session,)
-        LOG.info("\n--Table count: {}, offset: {}".format(len(tables), offset))
+        LOG.info(f"\n--Table count: {len(tables)}, offset: {offset}")
 
         for table in tables:
-            expand_table = table_to_es(table, session=session)
-            yield expand_table
-
+            yield table_to_es(table, session=session)
         if len(tables) < batch_size:
             break
         offset += batch_size
@@ -226,10 +220,10 @@ def table_to_es(table, session=None):
         else ""
     )
 
-    full_name = "{}.{}".format(schema_name, table_name)
+    full_name = f"{schema_name}.{table_name}"
     weight = get_table_weight(table.id, session=session)
 
-    expand_table = {
+    return {
         "id": table.id,
         "metastore_id": schema.metastore_id,
         "schema": schema_name,
@@ -237,9 +231,14 @@ def table_to_es(table, session=None):
         "full_name": full_name,
         "full_name_ngram": full_name,
         "completion_name": {
-            "input": [full_name, table_name,],
+            "input": [
+                full_name,
+                table_name,
+            ],
             "weight": weight,
-            "contexts": {"metastore_id": schema.metastore_id,},
+            "contexts": {
+                "metastore_id": schema.metastore_id,
+            },
         },
         "description": description,
         "created_at": DATETIME_TO_UTC(table.created_at),
@@ -248,7 +247,6 @@ def table_to_es(table, session=None):
         "importance_score": weight,
         "tags": [tag.tag_name for tag in table.tags],
     }
-    return expand_table
 
 
 def _bulk_insert_tables():
@@ -279,7 +277,7 @@ def update_table_by_id(table_id, session=None):
             _update(index_name, type_name, table_id, updated_body)
         except Exception:
             # Otherwise insert as new
-            LOG.error("failed to upsert {}. Will pass.".format(table_id))
+            LOG.error(f"failed to upsert {table_id}. Will pass.")
 
 
 def delete_es_table_by_id(table_id,):
@@ -288,7 +286,7 @@ def delete_es_table_by_id(table_id,):
     try:
         _delete(index_name, type_name, id=table_id)
     except Exception:
-        LOG.error("failed to delete {}. Will pass.".format(table_id))
+        LOG.error(f"failed to delete {table_id}. Will pass.")
 
 
 """
@@ -331,12 +329,10 @@ def get_users_iter(batch_size=5000, session=None):
 
     while True:
         users = User.get_all(limit=batch_size, offset=offset, session=session,)
-        LOG.info("\n--User count: {}, offset: {}".format(len(users), offset))
+        LOG.info(f"\n--User count: {len(users)}, offset: {offset}")
 
         for user in users:
-            expanded_user = user_to_es(user, session=session)
-            yield expanded_user
-
+            yield user_to_es(user, session=session)
         if len(users) < batch_size:
             break
         offset += batch_size
@@ -361,7 +357,7 @@ def update_user_by_id(uid, session=None):
         try:
             _delete(index_name, type_name, id=uid)
         except Exception:
-            LOG.error("failed to delete {}. Will pass.".format(uid))
+            LOG.error(f"failed to delete {uid}. Will pass.")
     else:
         formatted_object = user_to_es(user, session=session)
         try:
@@ -372,7 +368,7 @@ def update_user_by_id(uid, session=None):
             }  # ES requires this format for updates
             _update(index_name, type_name, uid, updated_body)
         except Exception:
-            LOG.error("failed to upsert {}. Will pass.".format(uid))
+            LOG.error(f"failed to upsert {uid}. Will pass.")
 
 
 """
@@ -432,7 +428,7 @@ def delete_indices(*config_names):
 
 
 def get_es_config_by_name(*config_names):
-    if len(config_names) == 0:
+    if not config_names:
         config_names = ES_CONFIG.keys()
     return [ES_CONFIG[config_name] for config_name in config_names]
 

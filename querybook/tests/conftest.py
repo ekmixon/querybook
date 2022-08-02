@@ -35,7 +35,7 @@ def db_engine(monkeysession):
     from env import QuerybookSettings
 
     tempfile_path = os.path.join(tempfile.gettempdir(), "test.db")
-    database_conn = "sqlite:///" + tempfile_path
+    database_conn = f"sqlite:///{tempfile_path}"
     engine = create_engine(
         database_conn, pool_pre_ping=True, encoding="utf-8", echo=True
     )
